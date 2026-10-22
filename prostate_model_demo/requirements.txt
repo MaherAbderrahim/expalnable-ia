@@ -1,0 +1,21 @@
+# Core (exact versions used and validated on 2026-10-22, Python 3.12.10, RTX 5060 Ti / CUDA 12.8)
+torch>=2.7            # CUDA build required for this GPU (sm_120); installed via the cu128 index
+monai>=1.6
+SimpleITK>=2.5
+numpy>=2.0
+scipy>=1.14
+scikit-learn>=1.5
+pandas>=2.2
+matplotlib>=3.9
+
+# Official PI-CAI ecosystem
+picai_prep>=2.1               # preprocessing (Sample/PreprocessingSettings/crop_or_pad/resample_img)
+picai_baseline @ git+https://github.com/DIAGNijmegen/picai_baseline   # checkpoint helper functions
+report-guided-annotation>=0.3 # detection-map lesion candidate extraction ('dynamic' threshold)
+
+# Demo tooling
+streamlit>=1.36
+pytest>=8.0
+remotezip>=2.0     # partial download of PI-CAI cases from the Zenodo archives
+requests>=2.31
+nbformat>=5.9      # notebooks/demo.ipynb

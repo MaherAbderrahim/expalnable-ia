@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "title": "IA explicable — Recherche sur le cancer de la prostate",
+    "subtitle": "Recherche et comparaison de modèles d'IA pour l'analyse explicable de l'IRM et de l'histopathologie prostatiques",
+    "generated": "2026-10-21",
+    "method": "Vérification sur sources primaires : API REST GitHub, clone git sans blobs (git ls-tree), sondes HTTP de fichiers bruts avec tailles en octets, API REST Zenodo, et récupération directe des portails de jeux de données, des pages de défis et des pages d'accueil d'articles.",
+    "warning": "Chaque affirmation « poids disponibles » et « code présent » de ce fichier a été confrontée à l'arborescence réelle du dépôt ou à une sonde HTTP. Les dépôts dont le README contredit le contenu sont explicitement signalés.",
+    "task_taxonomy": {
+      "classification": "Une étiquette par cas ou par lésion : cancer cliniquement significatif (csPCa, ISUP ≥ 2) ou non ; ou score de grade ISUP 0-5 à l'échelle de la lame entière. Sortie = un vecteur de probabilités ou un grade ordinal. L'IA explicable doit montrer OÙ se situe la preuve.",
+      "localization": "La localisation est le cœur du problème prostatique : PI-CAI mesure la performance au niveau du patient (detection/diagnostic) ET au niveau de la lésion (détection). Une zone d'intérêt (ROI) candidate est en plus classée cliniquement significative. Sortie = une ROI + un score.",
+      "segmentation": "Un label par voxel : glande prostatique entière, zones (périphérique / centrale), et lésions csPCa. Le masque EST DÉJÀ une explication spatiale : l'IA explicable explique alors le MODÈLE, pas la localisation.",
+      "why_it_matters": "Le cancer de la prostate est le seul grand cancer où une explication cliniquement actionnable a DÉJÀ été construite et validée avec des radiologues : les 14 signs PI-RADS (Hamm et al., Radiology 2023). Cela déplace la question : il ne s'agit plus d'inventer une explicabilité, mais de l'évaluer rigoureusement et de l'étendre à l'ISUP et à l'histopathologie."
+    }
+  },
+  "counts": {
+    "models": 28,
+    "datasets": 15,
+    "xai_methods": 14,
+    "papers": 26,
+    "repositories": 20,
+    "recommendations": 3
+  }
+}

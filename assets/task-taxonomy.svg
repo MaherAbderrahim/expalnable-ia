@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" width="880" height="400" role="img" aria-labelledby="tt-title tt-desc">
+  <title id="tt-title">Les trois tâches prostatiques comparées</title>
+  <desc id="tt-desc">Trois colonnes. La détection au niveau du patient produit une probabilité de cancer cliniquement significatif. La détection au niveau de la lésion produit une carte de détection voxel à voxel, qui est déjà une explication spatiale. Le grading produit un grade ordinal ISUP de 0 à 5, et son explication est l'attention ou les prototypes.</desc>
+  <style>
+    .bg{fill:#151a21}
+    .card{fill:#1a212a;stroke:#2b3440;stroke-width:1}
+    .h{fill:#e6edf3;font:700 16px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .lbl{fill:#4da3ff;font:700 11px ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em}
+    .t{fill:#e6edf3;font:600 13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .b{fill:#9aa8b6;font:13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .s{fill:#6e7d8c;font:11.5px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .good{fill:#3fb950;font:700 12px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .warn{fill:#d29922;font:700 12px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .heat{fill:url(#hg);stroke:#4da3ff;stroke-width:1.2;opacity:.85}
+    .gland{fill:none;stroke:#3b4757;stroke-width:1.6}
+    .arrow{stroke:#4da3ff;stroke-width:1.6;fill:none;marker-end:url(#ah)}
+    .img{fill:#232b35;stroke:#3b4757;stroke-width:1}
+    .proto{fill:#7c5cff;stroke:#c4b5ff;stroke-width:1}
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4da3ff"/>
+    </marker>
+    <radialGradient id="hg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff4d4d" stop-opacity=".95"/>
+      <stop offset="45%" stop-color="#ffb020" stop-opacity=".7"/>
+      <stop offset="100%" stop-color="#ff4d4d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect class="bg" width="880" height="400"/>
+
+  <text class="lbl" x="28" y="34">LES TROIS TÂCHES PROSTATIQUES — ET CE QUE CHACUNE PERMET D'EXPLIQUER</text>
+
+  <!-- PATIENT -->
+  <g>
+    <rect class="card" x="28" y="52" width="262" height="316" rx="10"/>
+    <text class="h" x="48" y="80">Détection · patient</text>
+    <rect class="img" x="48" y="98" width="72" height="72" rx="6"/>
+    <ellipse class="gland" cx="84" cy="134" rx="24" ry="17"/>
+    <text class="s" x="84" y="186" text-anchor="middle">examen IRM</text>
+    <path class="arrow" d="M126,198 L126,222"/>
+    <rect class="card" x="48" y="228" width="72" height="30" rx="5" fill="#202834"/>
+    <text class="t" x="84" y="248" text-anchor="middle">proba.</text>
+    <text class="b" x="136" y="240">P(csPCa) au niveau</text>
+    <text class="b" x="136" y="258">du patient</text>
+    <text class="s" x="136" y="278">ISUP ≥ 2 — faut-il biopsier ?</text>
+    <text class="warn" x="48" y="312">L'EXPLICATION DOIT APPORTER</text>
+    <text class="s" x="48" y="332">où, et sur quels signes.</text>
+    <text class="s" x="48" y="350">Une probabilité seule n'est pas actionnable.</text>
+  </g>
+
+  <!-- LESION -->
+  <g>
+    <rect class="card" x="309" y="52" width="262" height="316" rx="10" stroke="#4da3ff" stroke-opacity="0.45"/>
+    <text class="h" x="329" y="80">Détection · lésion</text>
+    <rect class="img" x="329" y="98" width="72" height="72" rx="6"/>
+    <ellipse class="gland" cx="365" cy="134" rx="24" ry="17"/>
+    <ellipse class="heat" cx="374" cy="128" rx="17" ry="13"/>
+    <text class="s" x="365" y="186" text-anchor="middle">examen IRM</text>
+    <path class="arrow" d="M407,198 L407,222"/>
+    <rect class="card" x="329" y="228" width="72" height="30" rx="5" fill="#202834"/>
+    <text class="t" x="365" y="248" text-anchor="middle">carte</text>
+    <text class="b" x="417" y="240">P(csPCa) par voxel +</text>
+    <text class="b" x="417" y="258">lésions candidates</text>
+    <text class="s" x="417" y="278">une probabilité spatiale continue</text>
+    <text class="good" x="329" y="312">DÉJÀ UNE EXPLICATION</text>
+    <text class="s" x="329" y="332">vérité terrain par construction :</text>
+    <text class="s" x="329" y="350">on peut MESURER une carte de chaleur</text>
+  </g>
+
+  <!-- GRADING -->
+  <g>
+    <rect class="card" x="590" y="52" width="262" height="316" rx="10"/>
+    <text class="h" x="610" y="80">Grading · ISUP 0-5</text>
+    <rect class="img" x="610" y="98" width="72" height="72" rx="6"/>
+    <circle class="proto" cx="632" cy="120" r="9"/>
+    <circle class="proto" cx="655" cy="136" r="11" opacity=".8"/>
+    <circle class="proto" cx="636" cy="152" r="8" opacity=".65"/>
+    <text class="s" x="646" y="186" text-anchor="middle">lame H&amp;E</text>
+    <path class="arrow" d="M688,198 L688,222"/>
+    <rect class="card" x="610" y="228" width="72" height="30" rx="5" fill="#202834"/>
+    <text class="t" x="646" y="248" text-anchor="middle">grade</text>
+    <text class="b" x="698" y="240">grade de Gleason / ISUP</text>
+    <text class="b" x="698" y="258">ordinal, 6 classes</text>
+    <text class="s" x="698" y="278">l'unité n'est plus le voxel</text>
+    <text class="good" x="610" y="312">EXPLICATION NATIVE</text>
+    <text class="s" x="610" y="332">attention MIL ou prototypes :</text>
+    <text class="s" x="610" y="350">le mécanisme EST l'explication</text>
+  </g>
+</svg>

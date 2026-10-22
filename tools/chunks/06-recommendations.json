@@ -1,0 +1,223 @@
+{
+  "recommended": {
+    "label": "RECOMMANDÉ",
+    "title": "U-Net de référence PI-CAI (poids déjà dans le dépôt) sur PI-CAI, expliqué par Grad-CAM + Integrated Gradients, avec vérification PI-RADS",
+    "model": "PI-CAI Baseline U-Net (supervisé) - ensemble de 5 U-Net 3D, poids unet_F0.pt à unet_F4.pt déjà dans le dépôt DIAGNijmegen/picai_unet_gc_algorithm",
+    "dataset": "PI-CAI Public Training and Development Dataset v2.0 - 1 500 IRM biparamétriques de 1 476 patients, 3 centres néerlandais, dont 1 295 avec contours de lésions par expert",
+    "xai_method": "Grad-CAM (pytorch-grad-cam) comme explication visuelle + Integrated Gradients (Captum) comme attribution signée + occlusions de fidélité, le tout confronté à la carte de détection du modèle ET aux contours experts",
+    "why": "C'est la seule combinaison de tout le dossier où l'explication peut être mesurée contre deux vérités terrain indépendantes : la carte de détection continue du modèle PI-CAI, et les contours de lésion d'un expert humain. La prostate offre en outre quelque chose d'introuvable en imagerie cérébrale : un lexique clinique standardisé (les 14 signes PI-RADS) déjà validé par une étude de lecteurs avec 50+ radiologues, qui fournit un jeu de concepts prêt à l'emploi pour une explication par concepts.",
+    "train_time": "Zéro entraînement requis pour la démonstration : les poids sont dans le dépôt. 1 à 2 jours pour l'évaluation complète, l'ablation CAM et la couche PI-RADS",
+    "gpu": "Recommandé pour l'inférence 3D (4-8 Go suffisent pour une inference sur un cas) ; le CPU suffit pour la manipulation et la visualisation",
+    "pros": [
+      "Poids pré-entraînés RÉELLEMENT présents dans le dépôt (5 plis, 127 Mo chacun) sous licence Apache-2.0 - le brief est satisfait à la lettre",
+      "Deux vérités terrain indépendantes pour valider l'explication : la carte de détection du modèle ET les contours experts de 1 295 cas",
+      "Un lexique clinique standardisé (PI-RADS) déjà validé pour l'explication par concepts, avec un protocole d'étude de lecteurs publié",
+      "La prostate est le seul cancer majeur pour lequel une IA explicable validée cliniquement existe déjà : vous n'êtes pas dans une terra incognita",
+      "Les données PI-CAI sont le plus grand jeu prostatique public annoté, avec des scores PI-RADS pour les 1 500 cas",
+      "Le modèle produit une carte de détection continue : l'explication est une PROBABILITÉ SPATIALE, pas une étiquette"
+    ],
+    "cons": [
+      "Les données PI-CAI sont en CC BY-NC 4.0 : usage NON COMMERCIAL uniquement - c'est la contrainte structurante du projet",
+      "Les poids sont stockés via Git LFS : un clone sans git-lfs ne récupère que des pointeurs de 134 octets et l'inférence échoue silencieusement",
+      "L'entrée est volumique 3D : une tranche 2D isolée n'a pas de sens clinique, ce qui rend la démonstration web plus lourde qu'en imagerie cérébrale 2D",
+      "Le pipeline PI-CAI n'embarque aucune IA explicable : la couche XAI est entièrement à écrire (~30-60 lignes avec pytorch-grad-cam)",
+      "Le modèle de référence est un U-Net 2019 : c'est la référence, pas l'état de l'art (les 5 finalistes de PI-CAI sont plus complexes)"
+    ]
+  },
+  "options": [
+    {
+      "id": "A",
+      "label": "Option A - La plus simple",
+      "model": "U-Net de référence PI-CAI (poids dans le dépôt) OU AIMI Task788_Prostate nnU-Net (poids CC BY 4.0 sur Zenodo)",
+      "dataset": "PI-CAI (1 500 cas publics) - probablement le seul jeu de données dont vous avez besoin",
+      "xai": "Grad-CAM (pytorch-grad-cam) + Integrated Gradients (Captum)",
+      "why": "Zéro entraînement, zéro réimplémentation. Clonez le dépôt (avec git-lfs), lancez l'inférence sur un cas, superposez la carte de chaleur sur la carte de détection. Vous avez en quelques heures un pipeline d'IA explicable prostatique fonctionnel, entièrement sous licence permissive côté code.",
+      "time": "1 à 2 jours pour une démonstration fonctionnelle (dont le téléchargement de ~27 Go de données et 635 Mo de poids)",
+      "gpu": "Recommandé (4-8 Go) mais pas indispensable pour un premier test",
+      "pros": [
+        "Poids déjà entraînés et publiés, sous Apache-2.0",
+        "Le code d'inférence et le Dockerfile sont fournis",
+        "La carte de détection du modèle sert de vérité terrain pour votre carte de chaleur",
+        "Aucune installation lourde : pip install pytorch-grad-cam, captum",
+        "Le jeu de données est le même pour l'entraînement, la validation et l'évaluation"
+      ],
+      "cons": [
+        "L'inférence est 3D : il faut volume complet, pas une tranche",
+        "Pas de couche d'explicabilité préexistante : tout reste à écrire",
+        "CC BY-NC sur les données : non commercial",
+        "Le modèle de référence n'est pas l'état de l'art"
+      ]
+    },
+    {
+      "id": "B",
+      "label": "Option B - Le meilleur compromis",
+      "model": "U-Net de référence PI-CAI (5 plis) pour la détection, PLUS une couche d'explication par concepts PI-RADS inspirée de Hamm et al.",
+      "dataset": "PI-CAI (1 500 cas + 1 295 contours experts + scores PI-RADS pour les 1 500 cas), avec PROSTATEx en validation externe",
+      "xai": "Grad-CAM pour la carte visuelle + Integrated Gradients pour l'attribution signée + faithfulness par occlusion + une couche PI-RADS qui traduit la sortie en Signs",
+      "why": "Vous ajoutez la partie qui manque à 95 % des travaux prostatiques : une explication au niveau des concepts cliniques, validée contre les scores PI-RADS désormais publiés pour les 1 500 cas de PI-CAI (Pooch et al. 2025). C'est le prolongement direct de Hamm et al. (Radiology 2023) et cela vous positionne sur l'axe le plus valorisant du domaine : passer de la carte de chaleur à l'affirmation de style compte rendu.",
+      "time": "2 à 3 semaines pour une démonstration soignée, incluant l'évaluation et l'ablation CAM",
+      "gpu": "Recommandé - 8-12 Go pour l'inférence 3D et l'entraînement éventuel des classifieurs de signes",
+      "pros": [
+        "Vousursed l'axe de recherche le plus actif et le plus valorisé du domaine prostatique",
+        "Les scores PI-RADS publiés pour 1 500 cas rendent l'entraînement de la couche de concepts faisable SANS annotation supplémentaire",
+        "Validation possible en double aveugle : votre explication PI-RADS vs les scores PI-RADS de praticiens",
+        "Validation externe possible sur PROSTATEx (malgré sa dépréciation, il reste un test externe indépendant)",
+        "La comparaison avec Hamm et al. devient directe et chiffrée"
+      ],
+      "cons": [
+        "Nécessite de construire la couche de classification de signes (plus complicated qu'un simple CAM)",
+        "La couche de signes exige des données annotées par signes, que PI-CAI fournit partiellement (scores par cas, pas par lésion)",
+        "Toujours pas commercialisable à cause du CC BY-NC des données",
+        "Deux semaines de plus que l'option A"
+      ]
+    },
+    {
+      "id": "C",
+      "label": "Option C - La plus ambitieuse",
+      "model": "GleasonXAI (U-Net intrinsèquement explicable) pour l'histopathologie, avec extension à l'IRM via le pipeline PI-CAI",
+      "dataset": "Gleason 2019 (244 TMA, 6 experts, annotation pixel) + PANDA (10 616 WSI, 2 113 patients) pour la voie histologie ; PI-CAI pour la voie IRM",
+      "xai": "Explication INTRINSÈQUE par vocabulaire d'anatomopathologiste (pas de méthode post-hoc) + attention MIL et attribution par prototypes pour la version WSI",
+      "why": "Vous attaquez le problème de l'explicabilité à sa racine : le réseau ne prédit pas un grade, il prédit une description en langage d'anatomopathologiste, donc l'explication EST la prédiction. C'est la démonstration la plus nette qu'on puisse faire de l'explicabilité intrinsèque, et elle est en MIT avec un code de recherche complet, des tests et des notebooks d'évaluation. Combinée à la voie IRM, elle donne un projet qui couvre les deux modalités du cancer prostatique.",
+      "time": "3 à 4 semaines (le jeu de 1 015 TMA annotés par 54 experts doit être obtenu auprès des auteurs)",
+      "gpu": "Modéré - U-Net 2D sur patchs ; pas de 3D lourd, mais le pipeline WSI est exigeant en IO",
+      "pros": [
+        "Explicabilité intrinsèque : aucune méthode post-hoc à discuter, la question « est-ce que la carte est fidèle ? » ne se pose même pas",
+        "Traite explicitement la variabilité inter-annotateur par des labels souples, qui est le vrai problème de la pathologie",
+        "Obtient de MEILLEURS résultats qu'un modèle entraîné directement sur le grade (Dice 0,713 contre 0,691)",
+        "Code de recherche complet sous MIT : configs, tests unitaires et d'intégration, notebooks d'évaluation, calcul du kappa de Fleiss",
+        "Deux modalités couvertes : IRM (détection) et histologie (grading), ce qui fait un projet complet"
+      ],
+      "cons": [
+        "Pas de poids publiés : il faut entraîner, et le jeu de 1 015 TMA annotés par 54 experts est à obtenir",
+        "Voie histopathologie uniquement dans un premier temps - l'IRM reste à gérer en parallèle",
+        "Coût de stockage et d'IO élevé sur les WSI",
+        "Le domaine de la pathologie computationnelle est très concurrentiel sur l'interprétabilité"
+      ]
+    }
+  ],
+  "top5": [
+    {
+      "rank": 1,
+      "name": "PI-CAI Baseline U-Net (poids dans le dépôt) + PI-CAI dataset",
+      "reuse": 10,
+      "quality": 8,
+      "weights": 10,
+      "code": 10,
+      "dataset": 10,
+      "explainability": 9,
+      "reproducibility": 10,
+      "compute": 7,
+      "student_fit": 9,
+      "documentation": 9,
+      "one_line": "Code + poids Apache-2.0 + le plus grand jeu prostatique annoté au monde, avec deux vérités terrain indépendantes pour valider l'explication."
+    },
+    {
+      "rank": 2,
+      "name": "GleasonXAI (U-Net intrinsèquement explicable) + jeu de 1 015 TMA",
+      "reuse": 7,
+      "quality": 9,
+      "weights": 4,
+      "code": 10,
+      "dataset": 7,
+      "explainability": 10,
+      "reproducibility": 8,
+      "compute": 8,
+      "student_fit": 7,
+      "documentation": 10,
+      "one_line": "L'explicabilité la plus native du dossier : la sortie EST un compte rendu d'anatomopathologiste. MIT, code de recherche complet, mais pas de poids."
+    },
+    {
+      "rank": 3,
+      "name": "AIMI Task788_Prostate (nnU-Net v1, CC BY 4.0)",
+      "reuse": 9,
+      "quality": 8,
+      "weights": 10,
+      "code": 7,
+      "dataset": 10,
+      "explainability": 4,
+      "reproducibility": 9,
+      "compute": 6,
+      "student_fit": 8,
+      "documentation": 7,
+      "one_line": "Les poids prostatiques les plus permissivement licenciés (CC BY 4.0, 1,67 Go), entraînés sur PI-CAI. Indispensable pour la région d'intérêt."
+    },
+    {
+      "rank": 4,
+      "name": "picai_baseline (U-Net / nnU-Net / nnDetection)",
+      "reuse": 10,
+      "quality": 9,
+      "weights": 7,
+      "code": 10,
+      "dataset": 10,
+      "explainability": 5,
+      "reproducibility": 10,
+      "compute": 7,
+      "student_fit": 9,
+      "documentation": 10,
+      "one_line": "La façon la plus correcte de reproduire les résultats de PI-CAI, avec les découpages 5 plis publiés et une installation par pip."
+    },
+    {
+      "rank": 5,
+      "name": "DSPA-U-MIL + StructMIL (MIL à attention et à prototypes pour le Gleason)",
+      "reuse": 7,
+      "quality": 9,
+      "weights": 6,
+      "code": 8,
+      "dataset": 9,
+      "explainability": 10,
+      "reproducibility": 8,
+      "compute": 5,
+      "student_fit": 6,
+      "documentation": 8,
+      "one_line": "La frontière de l'explicabilité en pathologie : attention MIL, prototypes histologiques nommés, et validité mesurée contre les annotations d'experts."
+    }
+  ],
+  "architecture": [
+    {
+      "step": 1,
+      "name": "Examen IRM prostatique",
+      "detail": "Un examen biparamétrique complet : T2W axial, carte ADC, DWI à haut b-value, en volume 3D. C'est la donnée d'entrée du modèle PI-CAI, et elle est volumique : une tranche isolée n'a pas de sens clinique. Si vous voulez une démonstration 2D, extrayez une tranche AXIALE T2W pour la visualisation, mais calculez l'explication sur le volume."
+    },
+    {
+      "step": 2,
+      "name": "Prétraitement",
+      "detail": "Recadrage sur la prostate, ré-échantillonnage vers 128x128x128 (plan de référence PI-CAI), calcul de l'ADC quand il est absent, normalisation par instance. Le pipeline exact est celui de picai_baseline et le fichier nnUNetPlans.json du modèle downloaded décrit lEm bedding de référence."
+    },
+    {
+      "step": 3,
+      "name": "Modèle",
+      "detail": "U-Net de référence PI-CAI (5 plis) pour produire la carte de détection de csPCa. Ce n'est pas l'état de l'art, mais c'est la référence, elle est Apache-2.0, ses poids sont publiés, et sa carte de détection est la meilleure vérité terrain disponible pour valider une carte de chaleur. Pour la glande prostatique (région d'intérêt), utilisez AIMI Task788_Prostate."
+    },
+    {
+      "step": 4,
+      "name": "Prédiction",
+      "detail": "Deux sorties : (a) une carte de détection voxel à voxel, c'est-à-dire une PROBABILITÉ DE csPCa par voxel ; (b) une probabilité de csPCa au niveau du cas, et une liste de lésions candidates avec leur score."
+    },
+    {
+      "step": 5,
+      "name": "IA explicable",
+      "detail": "① Grad-CAM sur le dernier bloc de décodeur : la carte visuelle, superposable à la carte de détection. ② Integrated Gradients : l'attribution signée par voxel, avec garantie de complétude. ③ Occlusion : la fidélité, en supprimant la zone la plus saillante et en mesurant la chute de probabilité. ④ Couche PI-RADS : la traduction de la sortie en signes cliniques, sur le modèle de Hamm et al."
+    },
+    {
+      "step": 6,
+      "name": "Carte de chaleur / segmentation / importance",
+      "detail": "Superposition de la carte Grad-CAM sur la tranche axiale T2W à 60 % d'opacité. Carte de détection du modèle superposée en contour. Cartouche de métriques : LocAcc (chevauchement carte de chaleur / contour expert, et / carte de détection), écart de fidélité après suppression, et écart de la probabilité au niveau du cas. Sur une lésion annotée, vous pouvez afficher côte à côte ce que le modèle pointe et ce que l'expert a dessiné."
+    },
+    {
+      "step": 7,
+      "name": "Interface",
+      "detail": "Application Gradio ou Streamlit : on téléverse un cas PI-CAI, on obtient la carte de détection superposée, la carte Grad-CAM, l'attribution IG, les métriques de fidélité, et le compte rendu en signes PI-RADS. C'est l'artefact que votre correcteur ou votre jury voit, donc une seule écran, sans navigation."
+    }
+  ],
+  "verification": {
+    "date": "2026-10-21",
+    "method": "API REST GitHub, clone git sans blobs (git ls-tree -r -l), sondes HTTP de fichiers bruts avec tailles en octets, API REST Zenodo, et récupération directe des portails de jeux de données, des pages de défis et des pages d'accueil d'articles.",
+    "repos_checked": 20,
+    "weights_files_probed": 6,
+    "license_confirmed": 13,
+    "license_missing_flagged": 3,
+    "links_checked": 80,
+    "links_broken": 0,
+    "note": "Points de verification notables pour la prostate. (1) Les poids de picai_unet_gc_algorithm sont stockes via Git LFS : chaque weights/unet_F0.pt est un pointeur de 134 octets pointant vers un fichier reel de 127 229 381 octets - un clone sans git-lfs recupere des pointeurs, pas des poids, et l echec est SILENCIEUX. C est le piege technique principal de ce projet. (2) PROSTATEx est explicitement declare DEPRECIE par la TCIA et remplace par PI-CAI, dont il contient les 328 cas de ProstateX - les utiliser ensemble creerait un chevauchement de patients. (3) La licence des donnees PI-CAI est CC BY-NC 4.0 (non commercial), et celle de PANDA est CC BY-SA-NC 4.0 : c est la contrainte structurante, absente de l equivalent cerebral ou BRISC est en CC BY. (4) PI-CAI reste le jeu de reference pour la prostate et son etude de lecteurs avec 50+ radiologues fournit un protocole de validation clinique rare en imagerie. (5) Deux depots n ont pas pu etre verifies en profondeur (le clone blobless de Kaggle-PANDA-1st-Place-Solution a expire, et NabaviLab/Prostate-Cancer n expose ni README ni LICENSE a la racine) : ils sont marques en consequence plutot que presentes comme utilisables. (6) Les 80 URL des livrables ont ete re-verifiees : 77 repondent, et 3 renvoient 403 (pubs.rsna.org x2 et sciencedirect.com) car ces editeurs bloquent les IP de centres de donnees - leurs pages ont ete confirmees accessibles pendant la recherche."
+  }
+}

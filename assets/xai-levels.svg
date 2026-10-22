@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="880" height="500" role="img" aria-labelledby="xl-title xl-desc">
+  <title id="xl-title">Quatre niveaux d'explication appliqués au cancer de la prostate</title>
+  <desc id="xl-desc">Quatre niveaux. Niveau 1, la carte de chaleur, n'établit qu'une corrélation entre une région et la sortie. Niveau 2, l'attribution signée, décompose le score avec une garantie de complétude et un test de fidélité falsifiable. Niveau 3, le lexique clinique PI-RADS, produit une affirmation validée par des experts et un compte rendu radiologique. Niveau 4, l'explication intrinsèque par prototypes en histologie, rend la prédiction indiscernable de l'explication.</desc>
+  <style>
+    .bg{fill:#151a21}
+    .lv{fill:#1a212a;stroke:#2b3440;stroke-width:1}
+    .n{fill:#4da3ff;font:700 30px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .h{fill:#e6edf3;font:700 15px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .b{fill:#9aa8b6;font:12.5px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .ok{fill:#3fb950;font:700 11.5px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .no{fill:#f85149;font:700 11.5px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .warn{fill:#d29922;font:700 11.5px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .tag{fill:#202834;stroke:#2b3440;stroke-width:1}
+    .tagt{fill:#9aa8b6;font:11px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+    .chain{stroke:#3b4757;stroke-width:1.4;fill:none;stroke-dasharray:4 4}
+  </style>
+
+  <rect class="bg" width="880" height="500"/>
+  <text x="30" y="42" fill="#4da3ff" font-family="ui-monospace,Menlo,monospace" font-size="11" font-weight="700" letter-spacing="0.14em">IA EXPLICABLE PROSTATIQUE — QUATRE NIVEAUX, DU PLUS FAIBLE AU PLUS FORT</text>
+
+  <!-- NIVEAU 1 -->
+  <rect class="lv" x="28" y="60" width="824" height="98" rx="10"/>
+  <text class="n" x="46" y="96">1</text>
+  <text class="h" x="76" y="88">La carte de chaleur — « où le modèle regarde »</text>
+  <text class="b" x="76" y="108">Grad-CAM · Grad-CAM++ · LayerCAM · Score-CAM · Seg-Grad-CAM</text>
+  <rect class="tag" x="76" y="120" width="230" height="24" rx="5"/><text class="tagt" x="86" y="136">établit : une corrélation seule</text>
+  <rect class="tag" x="316" y="120" width="290" height="24" rx="5"/><text class="tagt" x="326" y="136">« la carte ≠ le masque » (étude PCA-Rad 2022)</text>
+  <rect class="tag" x="616" y="120" width="216" height="24" rx="5"/><text class="tagt" x="626" y="136">non causale, non falsifiable</text>
+  <text class="no" x="76" y="152">✕ une carte qui vise la vessie ou la bordure de l'image paraît plausible et ne dit rien</text>
+
+  <path class="chain" d="M440,158 L440,178"/>
+
+  <!-- NIVEAU 2 -->
+  <rect class="lv" x="28" y="182" width="824" height="112" rx="10"/>
+  <text class="n" x="46" y="218">2</text>
+  <text class="h" x="76" y="210">L'attribution signée — « pourquoi il a décidé »</text>
+  <text class="b" x="76" y="230">Integrated Gradients · SHAP · occlusion / ablation de caractéristiques</text>
+  <rect class="tag" x="76" y="242" width="248" height="24" rx="5"/><text class="tagt" x="86" y="258">complétude : les attributions somment au score</text>
+  <rect class="tag" x="334" y="242" width="252" height="24" rx="5"/><text class="tagt" x="344" y="258">fidélité : testable, donc falsifiable</text>
+  <rect class="tag" x="596" y="242" width="236" height="24" rx="5"/><text class="tagt" x="606" y="258">deux vérités terrain disponibles</text>
+  <text class="ok" x="76" y="282">✓ « ce voxel a relevé le logit csPCa de 0,8 » — arithmétiquement vrai</text>
+  <text class="b" x="76" y="286" dy="0">   |   la carte de détection du modèle ET les contours experts permettent enfin de MESURER</text>
+
+  <path class="chain" d="M440,294 L440,314"/>
+
+  <!-- NIVEAU 3 -->
+  <rect class="lv" x="28" y="318" width="824" height="98" rx="10" stroke="#4da3ff" stroke-opacity="0.45"/>
+  <text class="n" x="46" y="354">3</text>
+  <text class="h" x="76" y="346">Le lexique clinique — le compte rendu</text>
+  <text class="b" x="76" y="366">Signes PI-RADS (14 signes) — Hamm et al., Radiology 2023</text>
+  <rect class="tag" x="76" y="378" width="256" height="24" rx="5"/><text class="tagt" x="86" y="394">80 % des explications confirmées par des experts</text>
+  <rect class="tag" x="342" y="378" width="256" height="24" rx="5"/><text class="tagt" x="352" y="394">confiance des non-experts 4,1 vs 3,4 sur 5</text>
+  <rect class="tag" x="608" y="378" width="224" height="24" rx="5"/><text class="tagt" x="618" y="394">temps de lecture −58 s</text>
+  <text class="ok" x="76" y="410">✓ un compte rendu radiologique, pas une image : auditable et actionnable — validé en clinique</text>
+
+  <path class="chain" d="M440,416 L440,436"/>
+
+  <!-- NIVEAU 4 -->
+  <rect class="lv" x="28" y="440" width="824" height="42" rx="10"/>
+  <text class="n" x="46" y="470">4</text>
+  <text class="h" x="76" y="464">L'explication intrinsèque</text>
+  <text class="b" x="76" y="478">le réseau ne prédit pas un grade, il prédit une description en langage d'anatomopathologiste : l'explication EST la prédiction (Dice 0,713 &gt; 0,691). En histologie : attention MIL et prototypes nommés.</text>
+</svg>

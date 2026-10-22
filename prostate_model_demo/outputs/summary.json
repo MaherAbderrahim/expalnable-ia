@@ -1,0 +1,54 @@
+{
+  "golden_test": "PASSED",
+  "cases": [
+    {
+      "case_id": "10000_1000000",
+      "likelihood": 0.2022933065891266,
+      "gt_positive": false,
+      "iou": 0.0,
+      "inference_time_s": 0.5961849999985134
+    },
+    {
+      "case_id": "10001_1000001",
+      "likelihood": 0.040277149528265,
+      "gt_positive": false,
+      "iou": 0.0,
+      "inference_time_s": 0.6183607999992091
+    },
+    {
+      "case_id": "10002_1000002",
+      "likelihood": 0.021346164867281914,
+      "gt_positive": false,
+      "iou": 0.0,
+      "inference_time_s": 0.47594240000034915
+    },
+    {
+      "case_id": "10005_1000005",
+      "likelihood": 0.16094455122947693,
+      "gt_positive": true,
+      "iou": 0.42533081285444235,
+      "inference_time_s": 0.4689829000017198
+    },
+    {
+      "case_id": "10008_1000008",
+      "likelihood": 0.3457127809524536,
+      "gt_positive": true,
+      "iou": 0.0926517571884984,
+      "inference_time_s": 0.48042440000062925
+    },
+    {
+      "case_id": "10012_1000012",
+      "likelihood": 0.10981353372335434,
+      "gt_positive": true,
+      "iou": 0.24241722620977077,
+      "inference_time_s": 0.5185514000004332
+    },
+    {
+      "case_id": "10032_1000032",
+      "likelihood": 0.5269225835800171,
+      "gt_positive": true,
+      "iou": 0.55594565715158,
+      "inference_time_s": 0.48019140000178595
+    }
+  ]
+}

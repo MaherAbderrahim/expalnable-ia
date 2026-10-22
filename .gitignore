@@ -1,0 +1,19 @@
+# --- Python environment / caches (never commit) ---
+prostate_model_demo/.venv/
+prostate_model_demo/.pytest_cache/
+__pycache__/
+*.pyc
+
+# --- Heavy model assets: 5 checkpoints x 127 MB, re-obtainable via Git LFS
+#     from the official repo (git lfs fetch --include "weights/*")
+prostate_model_demo/third_party/
+
+# --- Datasets (~56 MB): re-downloadable in a few minutes with
+#     `python scripts/download_or_prepare_data.py`
+prostate_model_demo/data/
+
+# --- Inference outputs: keep figures + JSON, skip the binary detection maps
+prostate_model_demo/outputs/predictions/**/*.mha
+
+# --- Local LFS staging artifacts
+lfs/

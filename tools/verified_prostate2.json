@@ -1,0 +1,44 @@
+[
+  {
+    "repo": "AlexNmSED/DSPA-MIL",
+    "status": "ok",
+    "last_commit": "75d95d410374771a3eba4bd84fdfadc06acf0eed|2026-01-13|AlexNmSED",
+    "file_count": 44,
+    "weight_files": [],
+    "weight_count": 0,
+    "xai_files": [],
+    "code_files": [
+      "run-train.sh",
+      "split_scripts/split_datasets_k_fold_train_val.py",
+      "split_scripts/split_datasets_k_fold_train_val_test.py",
+      "split_scripts/split_datasets_k_fold_train_val_then_test.py",
+      "split_scripts/split_datasets_user_define_train_val_test.py",
+      "split_scripts/splits_datasets_user_define_train_test.py",
+      "split_scripts/splits_datasets_user_define_train_val.py",
+      "train_mil.py"
+    ],
+    "data_files": [
+      "datasets/Readme.md",
+      "split_scripts/split_datasets_k_fold_train_val.py",
+      "split_scripts/split_datasets_k_fold_train_val_test.py",
+      "split_scripts/split_datasets_k_fold_train_val_then_test.py",
+      "split_scripts/split_datasets_user_define_train_val_test.py",
+      "split_scripts/splits_datasets_user_define_train_test.py",
+      "split_scripts/splits_datasets_user_define_train_val.py"
+    ],
+    "notebooks": [],
+    "has_docker": false,
+    "has_license": true,
+    "has_requirements": false,
+    "has_readme": true,
+    "total_bytes": 114366,
+    "root_files": [
+      "LICENSE",
+      "README.md",
+      "__init__.py",
+      "run-train.sh",
+      "test_mil.py",
+      "train_mil.py"
+    ]
+  }
+]

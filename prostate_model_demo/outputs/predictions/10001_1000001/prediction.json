@@ -1,0 +1,26 @@
+{
+  "case_id": "10001_1000001",
+  "device": "cuda",
+  "n_models_used": 5,
+  "preprocessed_shape": [
+    1,
+    3,
+    20,
+    256,
+    256
+  ],
+  "t2w_native_shape": [
+    21,
+    640,
+    640
+  ],
+  "t2w_spacing_mm": [
+    0.30000001192093,
+    0.30000001192093,
+    3.6000000778884846
+  ],
+  "case_level_likelihood": 0.040277149528265,
+  "preprocessing_time_s": 1.4881535999993503,
+  "inference_time_s": 0.6183607999992091,
+  "model_load_time_s": 0.0
+}

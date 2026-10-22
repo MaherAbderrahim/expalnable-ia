@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA explicable — Recherche sur le cancer de la prostate</title>
+<meta name="description" content="Recherche et comparaison de modèles d'IA pour l'analyse explicable de l'IRM et de l'histopathologie prostatiques : jeux de données PI-CAI, PROSTATEx et PANDA, méthodes d'IA explicable, et articles, avec code et poids vérifiés.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9878;</text></svg>">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <p class="eyebrow">Dossier de recherche</p>
+    <h1>IA explicable — Cancer de la prostate</h1>
+    <p class="subtitle">Recherche et comparaison de modèles d'IA pour l'analyse explicable de l'IRM et de l'histopathologie prostatiques</p>
+    <nav class="nav" aria-label="Navigation par section">
+      <a href="#overview">Vue d'ensemble</a>
+      <a href="#recommended">Recommandation</a>
+      <a href="#models">Modèles</a>
+      <a href="#xai">Méthodes XAI</a>
+      <a href="#datasets">Jeux de données</a>
+      <a href="#papers">Articles</a>
+      <a href="#comparison">Comparaison</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#sources">Sources</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1. VUE D'ENSEMBLE -->
+  <section id="overview" class="section">
+    <h2><span class="num">1</span> Vue d'ensemble</h2>
+    <p class="lead">Chaque entrée ci-dessous a été vérifiée sur sources primaires : l'API REST GitHub, un <code>git ls-tree</code> sans blobs de chaque dépôt, des sondes HTTP de fichiers bruts qui rapportent les tailles réelles en octets, l'API REST Zenodo, et la récupération directe des portails de jeux de données, des pages de défis et des pages d'accueil d'articles. Les dépôts dont le README contredit le contenu sont signalés plutôt que crus sur parole.</p>
+
+    <div class="stat-grid" id="stats"></div>
+
+    <div class="callout callout-warn">
+      <strong>La prostate est un cas particulier, et c'est une bonne nouvelle.</strong>
+      Contrairement aux tumeurs cérébrales, il existe ici <em>déjà</em> une IA explicable validée cliniquement : Hamm et al. (<em>Radiology</em> 2023) ont construit un modèle dont l'explication n'est pas une carte de chaleur mais un <strong>compte rendu en signes PI-RADS</strong>, validé par des experts (80 % d'explications jugées correctes) et par une étude de lecteurs où la confiance des non-experts a augmenté de 3,4 à 4,1 sur 5. Le défi PI-CAI a en outre mené une étude de lecteurs avec plus de 50 radiologues sur 400 cas. Votre projet part donc d'une base clinique, pas d'une page blanche — et votre contribution se joue sur la <em>mesure</em> de la fidélité et l'extension à l'ISUP et à l'histopathologie.
+    </div>
+
+    <div class="callout">
+      <strong>Le piège technique principal :</strong> les poids du modèle de référence PI-CAI sont stockés via <strong>Git LFS</strong>. Un <code>git clone</code> sans <code>git-lfs</code> récupère des <strong>pointeurs de 134 octets</strong> au lieu de fichiers de 127 Mo — et l'inférence échoue <em>silencieusement</em>. Vérifiez <code>git lfs pull</code> avant de conclure à un « modèle sans poids ».
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <h3>Les trois tâches prostatiques</h3>
+        <dl class="deflist">
+          <dt>Détection au niveau du patient</dt>
+          <dd>Le patient a-t-il un cancer cliniquement significatif (csPCa, ISUP ≥ 2) ? Sortie = une probabilité. C'est la métrique principale de PI-CAI.</dd>
+          <dt>Détection au niveau de la lésion</dt>
+          <dd>Où se trouve la lésion, et quelle est sa probabilité ? Sortie = une carte de détection voxel à voxel. C'est ce qui rend la VRAI MÉTHODE de prédiction du modèle.</dd>
+          <dt>Grading (ISUP 0-5)</dt>
+          <dd>À quel grade de Gleason / ISUP correspond la lésion ? Sortie = un grade ordinal. Le PANDA et le GLEASON 2019RELèvent de cette tâche, sur histologie.</dd>
+        </dl>
+        <p class="note">LePI-CAI mesure les deux premiers niveaux simultanément. C'est une particularité : vous pouvez donc valider une carte de chaleur contre la carte de détection du modèle ET contre les contours experts.</p>
+      </div>
+      <div class="panel">
+        <h3>Les deux modalités, deux mondes</h3>
+        <ul class="tight">
+          <li><strong>IRM (bpMRI)</strong> — T2W, ADC, DWI. Volume 3D. Détection de csPCa. C'est le monde du radiologue, avec PI-RADS comme vocabulaire.</li>
+          <li><strong>Histopathologie (H&amp;E)</strong> — lames entières géantes, patchs 256×256. Grading de Gleason. C'est le monde de l'anatomopathologiste, avec les patterns de Gleason comme vocabulaire.</li>
+        </ul>
+        <p class="note">Les deux mondes ont leur propre réponse à l'explicabilité : côté IRM, la carte de chaleur et les signes PI-RADS ; côté histologie, l'<strong>attention MIL</strong> et les <strong>prototypes</strong>, qui sont natifs et ne nécessitent aucune méthode post-hoc.</p>
+      </div>
+    </div>
+
+    <figure class="figure">
+      <img src="assets/task-taxonomy.svg" alt="Trois colonnes comparant détection au niveau du patient, détection au niveau de la lésion et grading : ce que chacune produit et quelle question d'explicabilité chacune soulève." width="880" height="400" loading="lazy">
+      <figcaption>Détection au niveau du patient, au niveau de la lésion, et grading : trois tâches, trois modalités d'explication. La détection au niveau de la lésion est celle qui offre le plus de matière à une explication mesurable, parce que la carte de détection est une vérité terrain par construction. <span class="fig-credit">Schéma original — <code>assets/task-taxonomy.svg</code></span></figcaption>
+    </figure>
+  </section>
+
+  <!-- 2. RECOMMANDATION -->
+  <section id="recommended" class="section">
+    <h2><span class="num">2</span> Solution recommandée</h2>
+
+    <div class="rec-card">
+      <div class="rec-badge">Recommandé</div>
+      <div class="rec-grid">
+        <div class="rec-block">
+          <span class="rec-label">Modèle</span>
+          <span class="rec-value" id="rec-model">—</span>
+        </div>
+        <div class="rec-block">
+          <span class="rec-label">Jeu de données</span>
+          <span class="rec-value" id="rec-dataset">—</span>
+        </div>
+        <div class="rec-block">
+          <span class="rec-label">Méthode XAI</span>
+          <span class="rec-value" id="rec-xai">—</span>
+        </div>
+      </div>
+      <p class="rec-why" id="rec-why"></p>
+      <div class="rec-meta">
+        <div><span>Temps d'entraînement</span><strong id="rec-time">—</strong></div>
+        <div><span>GPU</span><strong id="rec-gpu">—</strong></div>
+      </div>
+      <div class="rec-split">
+        <div class="rec-col">
+          <h4>Avantages</h4>
+          <ul id="rec-pros"></ul>
+        </div>
+        <div class="rec-col">
+          <h4>Limites</h4>
+          <ul id="rec-cons"></ul>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub">Les trois voies, côte à côte</h3>
+    <div class="opt-grid" id="options"></div>
+
+    <h3 class="sub">Top 5 des modèles, classés</h3>
+    <p class="lead">Classement établi sur la facilité de réutilisation, la qualité du modèle, la disponibilité des poids, la disponibilité du code, la qualité du jeu de données, l'explicabilité, la reproductibilité, le coût computationnel, l'adéquation à un projet étudiant et la qualité de la documentation.</p>
+    <div class="rank-list" id="top-models"></div>
+  </section>
+
+  <!-- 3. MODÈLES -->
+  <section id="models" class="section">
+    <h2><span class="num">3</span> Modèles</h2>
+    <p class="lead">Les filtres agissent sur les champs structurés. « Poids » indique si des fichiers de point de contrôle ont réellement été localisés — pas ce qu'un README affirme.</p>
+    <div class="toolbar">
+      <input type="search" id="model-search" placeholder="Rechercher modèles, jeux de données, frameworks…" aria-label="Rechercher des modèles">
+      <select id="model-task" aria-label="Filtrer par tâche"><option value="">Toutes les tâches</option></select>
+      <select id="model-weights" aria-label="Filtrer par disponibilité des poids">
+        <option value="">Tous</option>
+        <option value="yes">Poids disponibles</option>
+        <option value="no">Aucun poids</option>
+        <option value="external">Poids externes</option>
+      </select>
+      <select id="model-license" aria-label="Filtrer par licence">
+        <option value="">Toutes les licences</option>
+        <option value="permissive">Permissive (MIT/Apache/BSD/CC-BY)</option>
+        <option value="none">Sans licence / restrictive</option>
+      </select>
+      <span class="result-count" id="model-count"></span>
+    </div>
+    <div class="card-grid" id="models-grid"></div>
+  </section>
+
+  <!-- 4. MÉTHODES XAI -->
+  <section id="xai" class="section">
+    <h2><span class="num">4</span> Méthodes d'IA explicable</h2>
+
+    <figure class="figure">
+      <img src="assets/xai-levels.svg" alt="Quatre niveaux superposés d'explication prostatique : la carte de chaleur (correlation seule), l'attribution signée (completude et fidelite falsifiable), le lexique clinique PI-RADS (affirmation actionnable), et l'explication intrinseque par prototypes en histologie." width="880" height="500" loading="lazy">
+      <figcaption>La prostate permet une gradation plus fine qu'ailleurs : la carte de chaleur établit une corrélation, l'attribution signée décompose le score, le lexique PI-RADS produit une affirmation clinique validée, et l'annotation intrinsèque par prototypes rend l'explication indiscernable de la prédiction. <span class="fig-credit">Schéma original — <code>assets/xai-levels.svg</code></span></figcaption>
+    </figure>
+
+    <div class="two-col">
+      <div class="panel panel-accent">
+        <h3>« Où le modèle regarde » vs « pourquoi il a décidé »</h3>
+        <p>Ce sont des <strong>affirmations différentes</strong>, et la prostate fournit un contre-exemple frappant à la confusion la plus fréquente.</p>
+        <p><strong>Où il regarde</strong> — Grad-CAM, LayerCAM, Score-CAM, cartes d'attention, Seg-Grad-CAM. Ces méthodes établissent une <em>corrélation</em> entre une région et la sortie. Elles ne prouvent <strong>pas</strong> que le modèle a utilisé cette région.</p>
+        <p>Et l'article prostate le dit explicitement, ce qui est la citation à retenir : « <em>les cartes Grad-CAM décrivent la localisation de l'attention du CNN, alors que la segmentation CNN ne considère que l'activation de classe résultante, qui peut provenir de n'importe où dans le champ réceptif</em> » (étude de corrélation à l'histologie macroscopique, 2022). Autrement dit : <strong>une carte de chaleur et un masque ne disent pas la même chose</strong>, même quand ils se recouvrent partiellement. C'est la nuance conceptuelle la plus importante de tout ce dossier.</p>
+        <p><strong>Pourquoi il a décidé</strong> — Integrated Gradients, SHAP, DeepLIFT, LIME, occlusion. Ces méthodes décomposent le score. Deux propriétés doivent être vérifiées : la <em>complétude</em> (les attributions somment à la différence de score — garantie par IG et SHAP, pas par Grad-CAM) et la <em>fidélité</em> (supprimer la zone mise en évidence change-t-elle la prédiction ?).</p>
+        <p><strong>Ici, la fidélité est testable à un niveau de rigueur</strong> : le modèle PI-CAI de référence produit une <em>carte de détection continue</em>, et 1 295 cas portent des <em>contours de lésion d'expert</em>. Vous avez donc deux vérités terrain indépendantes pour la même image. C'est un luxe que l'imagerie cérébrale n'offre pas.</p>
+        <p><strong>Le niveau supérieur, propre à la prostate</strong> — les signes PI-RADS. Hamm et al. ont démontré qu'un modèle peut écrire sa justification comme un compte rendu radiologique (« hypo-intensité T2, restriction de diffusion, absence de plan antéropostérieur »), et que des experts confirment 80 % de ces explications. C'est un compte rendu, pas une image : donc auditable et actionnable.</p>
+        <p class="note">La recommandation honnête : montrez <em>les trois</em>. Une carte Grad-CAM pour le clinicien, une attribution Integrated Gradients pour le relecteur, et les signes PI-RADS pour le compte rendu. Un modèle de la prostate qui n'explique qu'en pixels n'a pas fait le travail.</p>
+      </div>
+      <div class="panel">
+        <h3>Contraintes pratiques</h3>
+        <ul class="tight">
+          <li><strong>Le 3D est la contrainte n°1.</strong> L'entrée PI-CAI est volumique. L'occlusion et DeepLIFT sur un volume 3D sont lents ; le KernelSHAP sur une WSI est hors de question (l'attention MIL prend le relais).</li>
+          <li><strong>Git LFS fait échouer les poids silencieusement.</strong> Vérifiez <code>git lfs pull</code> et la taille réelle du fichier (127 229 381 octets pour un pli).</li>
+          <li><strong>La licence des données est CC BY-NC 4.0.</strong> Usage NON COMMERCIAL uniquement. C'est la contrainte structurante du projet, à la différence de l'équivalent cérébral où BRISC est en CC BY.</li>
+          <li><strong>PROSTATEx est déprécié.</strong> La TCIA le déclare remplacé par PI-CAI, dont il contient les 328 cas de ProstateX. Utiliser les deux crée un chevauchement de patients.</li>
+          <li><strong>Le score chute en population de dépistage.</strong> PI-CAI (population de suspicion) donne ~0,88 d'AUROC ; une cohorte de dépistage (G2) ne donne plus que 0,83. Tout chiffre doit être rapporté avec sa population.</li>
+          <li><strong>Les faux positifs sont le vrai problème.</strong> Les systèmes de détection de lésions prostatiques atteignent 70-75 % de sensibilité mais 35-48 % de PPV, avec ~1,4 à 1,9 faux positif par patient. C'est ce qu'une explication honnête doit mettre en évidence, pas masquer.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="xai-search" placeholder="Rechercher des méthodes d'IA explicable…" aria-label="Rechercher des méthodes XAI">
+      <select id="xai-category" aria-label="Filtrer par catégorie"><option value="">Toutes les catégories</option></select>
+      <span class="result-count" id="xai-count"></span>
+    </div>
+    <div class="xai-grid" id="xai-grid"></div>
+  </section>
+
+  <!-- 5. JEUX DE DONNÉES -->
+  <section id="datasets" class="section">
+    <h2><span class="num">5</span> Jeux de données</h2>
+    <p class="lead">Nombre d'examens, nombre de patients et nombre de lames sont tenus séparés. Quand les sources divergent, le conflit est signalé plutôt que résolu arbitrairement.</p>
+    <div class="table-scroll">
+      <table class="data-table" id="datasets-table">
+        <thead>
+          <tr>
+            <th>Jeu de données</th><th>Type</th><th class="num">Examens / lames</th><th class="num">Patients</th>
+            <th>Classes</th><th>Masques</th><th>Accès</th><th>Licence</th><th>Recommandé</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="dataset-cards"></div>
+  </section>
+
+  <!-- 6. ARTICLES -->
+  <section id="papers" class="section">
+    <h2><span class="num">6</span> Articles</h2>
+    <div class="toolbar">
+      <input type="search" id="paper-search" placeholder="Rechercher titres, auteurs, modèles, revues…" aria-label="Rechercher des articles">
+      <select id="paper-filter" aria-label="Filtrer les articles">
+        <option value="">Tous les articles</option>
+        <option value="model">Articles modèle / architecture</option>
+        <option value="xai">Articles méthodes XAI</option>
+        <option value="dataset">Articles jeux de données</option>
+        <option value="survey">Revues</option>
+      </select>
+      <span class="result-count" id="paper-count"></span>
+    </div>
+    <div class="paper-list" id="papers-list"></div>
+  </section>
+
+  <!-- 7. COMPARAISON -->
+  <section id="comparison" class="section">
+    <h2><span class="num">7</span> Comparaison</h2>
+    <p class="lead">Une ligne par solution réutilisable. Cliquez sur un en-tête de colonne pour trier. Utilisez le champ de texte pour filtrer toutes les colonnes.</p>
+    <div class="toolbar">
+      <input type="search" id="cmp-search" placeholder="Filtrer toutes les colonnes…" aria-label="Filtrer le tableau de comparaison">
+      <select id="cmp-license" aria-label="Filtrer par licence">
+        <option value="">Toutes les licences</option>
+        <option value="permissive">Permissives uniquement</option>
+        <option value="none">Absentes ou restrictives</option>
+      </select>
+      <span class="result-count" id="cmp-count"></span>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table sortable" id="cmp-table">
+        <thead>
+          <tr>
+            <th data-sort="name">Solution</th>
+            <th data-sort="task">Tâche</th>
+            <th data-sort="model">Modèle</th>
+            <th data-sort="dataset">Jeu de données</th>
+            <th data-sort="xai">XAI</th>
+            <th data-sort="performance">Performance</th>
+            <th data-sort="code">Code</th>
+            <th data-sort="weights">Poids</th>
+            <th data-sort="license">Licence</th>
+            <th data-sort="difficulty">Difficulté de réutilisation</th>
+            <th>Recommandation</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 8. ARCHITECTURE -->
+  <section id="architecture" class="section">
+    <h2><span class="num">8</span> Architecture proposée du projet</h2>
+    <div class="pipeline" id="pipeline"></div>
+    <div class="panel panel-accent">
+      <h3>Pourquoi cette forme</h3>
+      <ul class="tight">
+        <li>La <strong>sortie du modèle EST une carte de détection</strong> continue. L'explication n'est donc pas une image ajoutée à côté de la prédiction : c'est la prédiction, lisible comme une probabilité spatiale. C'est une propriété rare et très contraignante.</li>
+        <li>La <strong>couche PI-RADS</strong> est le prolongement naturel du travail de Hamm et al. (Radiology 2023), et les scores PI-RADS sont désormais publiés pour les 1 500 cas de PI-CAI, ce qui la rend réalisable sans annotation supplémentaire.</li>
+        <li>Le <strong>bloc d'évaluation est la contribution</strong> : LocAcc contre la carte de détection <em>et</em> contre les contours experts, plus la fidélité par suppression. C'est ce qui distingue une démonstration d'une étude.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 9. SOURCES -->
+  <section id="sources" class="section">
+    <h2><span class="num">9</span> Sources</h2>
+    <p class="lead">Chaque affirmation importante de ce dossier remonte à l'une d'entre elles. Aucun lien n'est inventé ; tous ont été récupérés et confirmés pendant la recherche.</p>
+    <div class="toolbar">
+      <input type="search" id="src-search" placeholder="Filtrer les sources…" aria-label="Filtrer les sources">
+      <select id="src-type" aria-label="Filtrer par type de source"><option value="">Tous les types</option></select>
+      <span class="result-count" id="src-count"></span>
+    </div>
+    <div class="src-list" id="sources-list"></div>
+
+    <div class="panel panel-warn">
+      <h3>Registre de vérification</h3>
+      <div id="verification"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Ordre de confiance des sources utilisé partout</h3>
+      <ol class="tight">
+        <li>Source officielle du jeu de données (TCIA, IDC, Zenodo, Kaggle, page du défi)</li>
+        <li>Article original</li>
+        <li>Dépôt officiel des auteurs de l'article</li>
+        <li>Documentation officielle (grand-challenge.org, model zoo MONAI, documentation des bibliothèques)</li>
+        <li>PubMed / arXiv / PMC</li>
+        <li>Dépôts GitHub d'autres chercheurs</li>
+        <li>Kaggle</li>
+        <li>Blogs et articles</li>
+      </ol>
+      <p class="note">Quand deux sources divergent, le conflit est rapporté dans l'entrée plutôt que résolu arbitrairement.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>IA explicable — Cancer de la prostate.</strong> Généré le 21 octobre 2026. Chaque modèle, jeu de données, dépôt, licence et chiffre de performance de ce dossier a été confronté à des sources primaires pendant la recherche ; le registre de vérification ci-dessus liste précisément ce qui a été contrôlé et ce qui a échoué.</p>
+    <p class="foot-note">Construit en HTML, CSS et JavaScript purs. Aucun framework, aucune étape de build, aucun appel réseau à l'exécution.</p>
+  </div>
+</footer>
+
+<script src="research-data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
