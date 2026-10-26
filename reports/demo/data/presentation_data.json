@@ -1,0 +1,284 @@
+{
+ "generated_at": "2026-10-23T11:07:37",
+ "cases_meta": [
+  {
+   "case_id": "10000_1000000",
+   "csPCa": false,
+   "PI-RADS": "4",
+   "ISUP_max": 0,
+   "center": "PCNN"
+  },
+  {
+   "case_id": "10001_1000001",
+   "csPCa": false,
+   "PI-RADS": "2",
+   "ISUP_max": 0,
+   "center": "RUMC"
+  },
+  {
+   "case_id": "10002_1000002",
+   "csPCa": false,
+   "PI-RADS": "2",
+   "ISUP_max": 0,
+   "center": "ZGT"
+  },
+  {
+   "case_id": "10005_1000005",
+   "csPCa": true,
+   "PI-RADS": "4,4",
+   "ISUP_max": 3,
+   "center": "RUMC"
+  },
+  {
+   "case_id": "10008_1000008",
+   "csPCa": true,
+   "PI-RADS": "5,N/A",
+   "ISUP_max": 3,
+   "center": "ZGT"
+  },
+  {
+   "case_id": "10012_1000012",
+   "csPCa": true,
+   "PI-RADS": "5",
+   "ISUP_max": 2,
+   "center": "RUMC"
+  },
+  {
+   "case_id": "10032_1000032",
+   "csPCa": true,
+   "PI-RADS": "5,4",
+   "ISUP_max": 3,
+   "center": "RUMC"
+  }
+ ],
+ "model": {
+  "name": "PI-CAI UNet 3D — ensemble 5 folds (Saha et al., Lancet Oncology 2024)",
+  "n_folds": 5,
+  "params_per_fold_millions": 31.8,
+  "weight_mb_per_fold": 127.2,
+  "input_shape": [
+   20,
+   256,
+   256
+  ],
+  "spacing": [
+   3.0,
+   0.5,
+   0.5
+  ],
+  "channels": 3,
+  "threshold_official": 0.5,
+  "gaussian_sigma": 1.5,
+  "tta_flip": true,
+  "device": "cuda",
+  "load_seconds": 0.76
+ },
+ "golden": {
+  "case_id": "10032_1000032",
+  "score": 0.5269225835800171,
+  "reference": 0.52692652,
+  "delta": 3.936419982863981e-06,
+  "passed": true,
+  "figure": "assets/cases/case_10032_full.png"
+ },
+ "cases": [
+  {
+   "case_id": "10000_1000000",
+   "score": 0.20229360461235046,
+   "csPCa": false,
+   "PI-RADS": "4",
+   "pred": "aucune",
+   "verdict": "TN"
+  },
+  {
+   "case_id": "10001_1000001",
+   "score": 0.040277149528265,
+   "csPCa": false,
+   "PI-RADS": "2",
+   "pred": "aucune",
+   "verdict": "TN"
+  },
+  {
+   "case_id": "10002_1000002",
+   "score": 0.021346168592572212,
+   "csPCa": false,
+   "PI-RADS": "2",
+   "pred": "aucune",
+   "verdict": "TN"
+  },
+  {
+   "case_id": "10005_1000005",
+   "score": 0.16094455122947693,
+   "csPCa": true,
+   "PI-RADS": "4,4",
+   "pred": "aucune",
+   "verdict": "FN"
+  },
+  {
+   "case_id": "10008_1000008",
+   "score": 0.3457127809524536,
+   "csPCa": true,
+   "PI-RADS": "5,N/A",
+   "pred": "aucune",
+   "verdict": "FN"
+  },
+  {
+   "case_id": "10012_1000012",
+   "score": 0.10981353372335434,
+   "csPCa": true,
+   "PI-RADS": "5",
+   "pred": "aucune",
+   "verdict": "FN"
+  },
+  {
+   "case_id": "10032_1000032",
+   "score": 0.5269225835800171,
+   "csPCa": true,
+   "PI-RADS": "5,4",
+   "pred": "suspicion",
+   "verdict": "TP"
+  }
+ ],
+ "panels": {
+  "10032_1000032": {
+   "role": "detection franche",
+   "figure": "assets/cases/case_10032_panel.png",
+   "score": 0.5269225835800171,
+   "csPCa": true,
+   "pred": "suspicion",
+   "verdict": "TP"
+  },
+  "10012_1000012": {
+   "role": "cancer manqué",
+   "figure": "assets/cases/case_10012_panel.png",
+   "score": 0.10981353372335434,
+   "csPCa": true,
+   "pred": "aucune",
+   "verdict": "FN"
+  },
+  "10008_1000008": {
+   "role": "cas ambigu",
+   "figure": "assets/cases/case_10008_panel.png",
+   "score": 0.3457127809524536,
+   "csPCa": true,
+   "pred": "aucune",
+   "verdict": "FN"
+  }
+ },
+ "threshold_phase1": {
+  "value": 0.5,
+  "rationale": "point opératoire officiel PI-CAI : sensitivity 70.9 % / PPV 35.5 % (Saha et al., Lancet Oncology 2024) — aucun ajustement local."
+ },
+ "benchmark": [
+  {
+   "split": "val",
+   "config": "official_default",
+   "threshold": 0.5,
+   "auroc": 0.8379,
+   "ap": 0.7852,
+   "sens": 0.176,
+   "spec": 1.0,
+   "precision": 1.0,
+   "f1": 0.3,
+   "balanced_accuracy": 0.588,
+   "ece": 0.158,
+   "n_cases": 120
+  },
+  {
+   "split": "val",
+   "config": "no_extract",
+   "threshold": 0.1572,
+   "auroc": 0.8451,
+   "ap": 0.7893,
+   "sens": 0.618,
+   "spec": 0.942,
+   "precision": 0.808,
+   "f1": 0.7,
+   "balanced_accuracy": 0.78,
+   "ece": 0.173,
+   "n_cases": 120
+  },
+  {
+   "split": "test",
+   "config": "official_default",
+   "threshold": 0.5,
+   "auroc": 0.8042,
+   "ap": 0.7064,
+   "sens": 0.235,
+   "spec": 1.0,
+   "precision": 1.0,
+   "f1": 0.381,
+   "balanced_accuracy": 0.618,
+   "ece": 0.145,
+   "n_cases": 120
+  },
+  {
+   "split": "test",
+   "config": "no_extract",
+   "threshold": 0.1572,
+   "auroc": 0.8081,
+   "ap": 0.7107,
+   "sens": 0.559,
+   "spec": 0.907,
+   "precision": 0.704,
+   "f1": 0.623,
+   "balanced_accuracy": 0.733,
+   "ece": 0.168,
+   "n_cases": 120
+  }
+ ],
+ "benchmark_stats": {
+  "delong_p_test": 0.9472657058848553,
+  "bootstrap_auc_diff": {
+   "mean": -0.003932968536251691,
+   "ci_lower": -0.021554377564979525,
+   "ci_upper": 0.01094391244870041
+  },
+  "auroc_selected_ci_test": {
+   "value": 0.8081395348837209,
+   "ci_lower": 0.7096357729138166,
+   "ci_upper": 0.8950068399452804,
+   "n_boot": 2000
+  },
+  "fold_run_variance_val": {
+   "mean": 0.7890218878248973,
+   "sd": 0.0266536901187693
+  }
+ },
+ "selected_postproc": {
+  "config": "no_extract",
+  "threshold": 0.1571674644947052
+ },
+ "xai_main": {
+  "case_id": "10032_1000032",
+  "gradcam": {
+   "figure": "assets/xai/p2_gradcam_10032.png",
+   "slice": 11
+  },
+  "gradcampp": {
+   "figure": "assets/xai/p2_gradcampp_10032.png",
+   "slice": 11
+  },
+  "det_slice": 10
+ },
+ "xai_ig": {
+  "case_id": "10032_1000032",
+  "figure": "assets/xai/p2_ig_10032.png",
+  "slice": 15
+ },
+ "xai_fn": {
+  "case_id": "10012_1000012",
+  "figure": "assets/xai/p2_gradcampp_10012_FN.png",
+  "score": 0.10981353372335434,
+  "slice": 4
+ },
+ "xai_quality": {
+  "insertion_auc_mean": 0.4567035103258426,
+  "deletion_auc_mean": 0.3536502591373265,
+  "stability_best": 0.9941391348838806,
+  "randomization_mean_abs": 0.014762974654634794,
+  "gradcampp_enrichment_max": 19.999389667063383,
+  "n_audited_cases": 6
+ },
+ "xai_quality_source": "experiments/results/xai/xai_quality.csv — audit réel (6 cas incl. FP/FN)"
+}

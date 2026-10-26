@@ -1,0 +1,30 @@
+{
+  "split": "val",
+  "config": "no_extract",
+  "counts_by_type": {
+    "TN": 81,
+    "TP": 21,
+    "FN": 13,
+    "FP": 5
+  },
+  "n_positive": 34,
+  "n_negative": 86,
+  "FN_mean_likelihood": 0.04816226571655044,
+  "FP_mean_likelihood": 0.22877583503723145,
+  "TP_mean_likelihood": 0.4018206603470303,
+  "TN_mean_likelihood": 0.037342297864709925,
+  "FN_mean_iou_when_annotated": 0.16704196792336007,
+  "FN_by_PIRADS": {
+    "4": 3,
+    "5": 10
+  },
+  "FP_by_center": {
+    "PCNN": 1,
+    "RUMC": 2,
+    "ZGT": 2
+  },
+  "FN_by_center": {
+    "RUMC": 9,
+    "ZGT": 4
+  }
+}

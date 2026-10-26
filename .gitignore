@@ -17,3 +17,28 @@ prostate_model_demo/outputs/predictions/**/*.mha
 
 # --- Local LFS staging artifacts
 lfs/
+
+# ===========================================================================
+# Phase 2 — heavy / re-downloadable artifacts (never commit)
+# ===========================================================================
+# Images + annotations: re-downloadable via scripts/prepare_data.py
+data/picai/images/
+data/picai/label_masks/
+data/incoming/
+# Per-case prediction arrays (npz/mha) saved by the evaluation engine
+data/predictions/
+data/cache/
+data/*.zip
+# Experiment bulk outputs (keep metrics/logs/reports, skip heavy arrays)
+experiments/**/predictions/
+*outputs*/**/*.mha
+# Local scratch
+.claude/
+
+# --- Demo launcher artifacts (never commit) ---
+# Cloudflared binary (~53 MB, re-downloadable from cloudflare.com)
+tools/cloudflared.exe
+# Runtime logs of the demo launcher
+logs/
+# Last generated tunnel URL
+dernier-lien-demo.txt
