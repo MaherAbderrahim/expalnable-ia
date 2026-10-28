@@ -47,9 +47,9 @@ Le projet combine trois livrables :
 - Le gain vient de la **couche décision/post-traitement** (aucun ré-entraînement) : le seuil officiel 0.50 était quasi-aveugle (17–24 % de sensibilité), et l'extraction RGA de candidates éliminait de vraies lésions.
 - **Non-significativité assumée** : DeLong p = 0.95, ΔAUROC ≈ 0 — le classement par le modèle n'a pas changé, seul l'**opérant point** s'améliore.
 
-### XAI — 8 cas audités
+### XAI — 6 cas audités (run réel)
 
-4 méthodes (Grad-CAM, Grad-CAM++, Integrated Gradients, Occlusion) + 4 contrôles qualité (stabilité, déplacement, fidélité, localisation vs contours experts) → `experiments/results/xai/xai_quality.csv`.
+3 familles complémentaires + 1 variante : Grad-CAM & Grad-CAM++ (CAM), Integrated Gradients (chemin de gradients), Occlusion sensitivity (perturbation) — exécutées sur le vrai pipeline, chacune avec ses contrôles de fidélité (insertion/deletion), robustesse (stabilité), sensibilité au modèle (randomisation) et localisation vs contours experts → `experiments/results/xai/xai_quality.csv`, comparaison : `reports/XAI_COMPARISON.md`.
 
 ---
 
@@ -181,23 +181,29 @@ Les 7 étapes (`download → splits → inference → select → eval → explai
 ## Explicabilité (XAI)
 
 ```powershell
-python scripts/explain.py   # appelé automatiquement par run_phase2.py
+python scripts/explain.py      # occlusion incluse (3 familles) ; --no-occlusion pour un run rapide
+python scripts/xai_report.py   # reconstruit la comparaison mesures réelles (reports/XAI_COMPARISON.md)
 ```
 
-- **4 méthodes** : Grad-CAM, Grad-CAM++ (pytorch-grad-cam), Integrated Gradients et Occlusion (Captum) — toutes adaptées au pipeline 3D (fold-flip TTA, dé-normalisation du crop/pad).
-- **4 contrôles qualité** (ne pas faire confiance à une belle heatmap) :
-  1. **Stabilité** — cohérence entre folds de l'ensemble.
-  2. **Déplacement** — la heatmap suit-elle la lésion quand on la compare au contour expert ?
-  3. **Fidélité** — chute de probabilité après suppression de la région expliquée.
-  4. **Localisation** — recouvrement heatmap vs carte de détection du modèle ET vs contours experts (LocAcc).
-- Sorties : `experiments/results/xai/` (`.npz` bruts + figures) et figures intégrées au tableau de bord démo.
+- **3 familles complémentaires, implémentations from-scratch (torch/scipy, aucune lib XAI externe)** :
+  1. **Grad-CAM / Grad-CAM++** (CAM 3D, hook sur la dernière skip-connection),
+  2. **Integrated Gradients** (chemin de gradients, baseline zéro, 32 pas),
+  3. **Occlusion sensitivity** (slabs 3D, score fusionné par pli).
+  Toutes expliquent la même sortie : la probabilité csPCa fusionnée de l'ensemble 5 plis.
+- **Contrôles qualité par méthode** (ne pas faire confiance à une belle heatmap) :
+  1. **Fidélité** — courbes insertion/deletion (AUC) sur le score fusionné.
+  2. **Stabilité** — Pearson d'attribution sous décalage géométrique ±1 voxel.
+  3. **Randomisation modèle** (Adebayo et al.) — la carte doit réagir à la corruption des poids (copie jetable ; les poids de production ne sont jamais altérés).
+  4. **Localisation** — IoU top-5 % et enrichissement vs contours experts.
+  5. **Garde-fou de dégénérescence** — une carte constante/non finie est retirée et journalisée (détecté : cartes CAM constantes sur 2/6 cas audités).
+- Sorties : `experiments/results/xai/` (`.npz` bruts + figures comparatives par cas + `xai_quality.csv`) ; comparaison scientifique : `reports/XAI_COMPARISON.md`.
 
 ---
 
 ## Tests
 
 ```powershell
-pytest tests          # 30 tests Phase 2 (métriques, post-traitement, stats, splits, XAI)
+pytest tests          # 41 tests Phase 2 (métriques, post-traitement, stats, splits, XAI 3 familles + contrôles)
 ```
 
 La régression Phase 1 (golden test) fait partie de l'étape `regression` du pipeline.

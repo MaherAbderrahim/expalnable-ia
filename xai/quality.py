@@ -22,6 +22,8 @@ import torch
 from xai.methods import (
     ensemble_gradcam,
     fused_score_from_batch,
+    integrated_gradients_single,
+    occlusion_scan,
 )
 
 
@@ -162,17 +164,109 @@ def gradcam_single(model, input_tensor: torch.Tensor, method: str = "gradcam") -
 
 
 # ---------------------------------------------------------------------------
+# 3b. model randomization for IG and occlusion (same fold-0 scheme)
+# ---------------------------------------------------------------------------
+
+def _randomized_fold_copy(model, seed: int = 2026):
+    """Deep copy of ONE fold model with the final up-path weights randomized
+    (same randomization scheme as randomization_test — production weights are
+    never touched: the copy is destroyed after use)."""
+    import copy as _copy
+    ang = _copy.deepcopy(model)
+    target_dev = next(model.parameters()).device
+    g = torch.Generator(device=target_dev.type).manual_seed(seed)
+    with torch.no_grad():
+        for p in ang.model[-1].parameters():
+            p.copy_(torch.empty_like(p).uniform_(-1.0, 1.0, generator=g) * 0.1)
+    return ang
+
+
+def randomization_test_ig(models, input_tensor, device: str, steps: int = 24,
+                          seed: int = 2026, depth: str = "top") -> dict:
+    """Adebayo-style control for Integrated Gradients (fold 0).
+
+    Reference = single-fold IG; then the fold's weights are randomized into a
+    THROWAWAY copy and IG recomputed. A faithful IG must materially change
+    (low Pearson r). depth="top" randomizes only the final up-path block (the
+    same scheme as the Grad-CAM control — comparable protocols, adapted to the
+    measurement); depth="all" randomizes every parameter (stricter).
+    Cost: 2 single-fold IG runs.
+    """
+    m0 = models[0]
+    x = torch.from_numpy(input_tensor).float()
+    ref = integrated_gradients_single(m0, x, device, steps=steps)
+    ang = _randomized_fold_copy(m0, seed=seed)
+    if depth == "all":
+        g = torch.Generator(device=next(m0.parameters()).device.type).manual_seed(seed)
+        with torch.no_grad():
+            for p in ang.parameters():
+                p.copy_(torch.empty_like(p).uniform_(-1.0, 1.0, generator=g) * 0.1)
+    elif depth != "top":
+        raise ValueError(f"unknown randomization depth {depth!r}")
+    rand = integrated_gradients_single(ang, x, device, steps=steps)
+    a = np.abs(ref).max(axis=0).ravel().astype(np.float64)
+    b = np.abs(rand).max(axis=0).ravel().astype(np.float64)
+    a -= a.mean(); b -= b.mean()
+    den = np.linalg.norm(a) * np.linalg.norm(b) + 1e-12
+    return {"pearson_similarity_orig_vs_randomized": float(np.dot(a, b) / den)}
+
+
+def randomization_test_occlusion(models, input_tensor, device: str,
+                                 slab=(2, 32, 32), stride=(4, 48, 48),
+                                 seed: int = 2026) -> dict:
+    """Adebayo-style control for occlusion sensitivity (fold 0, coarse scan —
+    two single-fold occlusion scans ≈ 2 * (1/5) of one coarse ensemble scan)."""
+    m0 = models[0]
+    x = torch.from_numpy(input_tensor).float()
+    ref = occlusion_scan([m0], x, device, slab=slab, stride=stride)
+    ang = _randomized_fold_copy(m0, seed=seed)
+    rand = occlusion_scan([ang], x, device, slab=slab, stride=stride)
+    a = ref.ravel().astype(np.float64)
+    b = rand.ravel().astype(np.float64)
+    a -= a.mean(); b -= b.mean()
+    den = np.linalg.norm(a) * np.linalg.norm(b) + 1e-12
+    return {"pearson_similarity_orig_vs_randomized": float(np.dot(a, b) / den)}
+
+
+def map_is_degenerate(heat: np.ndarray) -> dict:
+    """Input-dependence guard: a map that is constant, all-zero or non-finite
+    explains nothing and must be flagged instead of trusted."""
+    h = np.asarray(heat, dtype=np.float64)
+    reasons = []
+    if not np.isfinite(h).all():
+        reasons.append("non_finite")
+    if h.size == 0 or float(h.max() - h.min()) <= 1e-12:
+        reasons.append("constant")
+    elif float(h.max()) <= 0.0:
+        reasons.append("all_zero")
+    return {"degenerate": bool(reasons), "reasons": reasons,
+            "max": (None if h.size == 0 else float(h.max()))}
+
+
+# ---------------------------------------------------------------------------
 # 4. stability (+/- 1-voxel shift)
 # ---------------------------------------------------------------------------
 
 def stability_jitter(models, input_tensor: np.ndarray, device: str,
-                     method: str = "gradcam") -> dict:
+                     method: str = "gradcam",
+                     explainer=None) -> dict:
     """Pearson between the attribution of the original input and the by-1-voxel
-    shifted input (no noise added — pure geometry)."""
+    shifted input (no noise added — pure geometry).
+
+    method="gradcam"/"gradcampp" uses the CAM explainer by default; any other
+    method family must pass `explainer(models, tensor, device) -> (d, h, w)`
+    (e.g. an IG wrapper with reduced steps, or a cheaper occlusion scan).
+    """
+    if explainer is None:
+        if method not in ("gradcam", "gradcampp"):
+            raise ValueError(
+                f"stability_jitter needs an explainer callable for method {method!r}"
+            )
+        explainer = lambda ms, t, dv: ensemble_gradcam(ms, t, dv, method=method)  # noqa: E731
     t = torch.from_numpy(input_tensor).float()
-    ref = ensemble_gradcam(models, t, device, method=method)
+    ref = explainer(models, t, device)
     tt = torch.from_numpy(np.roll(input_tensor, 1, axis=-2)).float()
-    alt = ensemble_gradcam(models, tt, device, method=method)
+    alt = explainer(models, tt, device)
     a = ref.ravel()
     b = alt.ravel()
     a -= a.mean()

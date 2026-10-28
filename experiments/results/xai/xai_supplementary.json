@@ -1,0 +1,30 @@
+{
+  "ig_randomization_all": {
+    "10388_1000394": 0.3808267940195747,
+    "10650_1000666": 0.4183547174413796,
+    "10810_1000826": 0.37704898496457023,
+    "10925_1000942": 0.4112660214674012,
+    "11175_1001198": 0.35323315515791687,
+    "11341_1001364": 0.3952207629411846
+  },
+  "cross_case_variability": {
+    "gradcam": {
+      "mean_pairwise_pearson": 0.0069549177597505426,
+      "n_valid_pairs": 6,
+      "n_undefined_pairs_constant_map": 9,
+      "map_volume_std_across_cases": 0.005358846392482519
+    },
+    "integrated_gradients": {
+      "mean_pairwise_pearson": 0.6777465953675211,
+      "n_valid_pairs": 15,
+      "n_undefined_pairs_constant_map": 0,
+      "map_volume_std_across_cases": 0.010277872905135155
+    },
+    "occlusion": {
+      "mean_pairwise_pearson": 0.14272661091854444,
+      "n_valid_pairs": 15,
+      "n_undefined_pairs_constant_map": 0,
+      "map_volume_std_across_cases": 0.014442935585975647
+    }
+  }
+}

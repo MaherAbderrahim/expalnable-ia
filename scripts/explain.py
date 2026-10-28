@@ -1,8 +1,11 @@
 """Run the XAI stack (Grad-CAM, Grad-CAM++, Integrated Gradients, occlusion)
-on a sample of cases; produce overlay figures + quality metrics.
+on a sample of cases; produce overlay figures + per-method quality metrics.
 
 Usage:
-    python scripts/explain.py --n-cases 12 [--split val] [--with-occlusion]
+    python scripts/explain.py --n-cases 12 [--split val] [--no-occlusion]
+
+Occlusion is computed by default (three complementary XAI families); use
+--no-occlusion for quick smoke runs (~8x faster per case).
 
 Selection of cases (documented, pre-registered):
     2 per quartile of the FROZEN score distribution + all FPs/FNs from the
@@ -41,7 +44,10 @@ from xai.methods import (  # noqa: E402
 from xai.quality import (  # noqa: E402
     insertion_deletion,
     localization_agreement,
+    map_is_degenerate,
     randomization_test,
+    randomization_test_ig,
+    randomization_test_occlusion,
     stability_jitter,
 )
 from xai.visualize import explain_figure  # noqa: E402
@@ -109,8 +115,14 @@ def load_and_score_any(split: str) -> pd.DataFrame:
     return score_dataframe(df, [OFFICIAL_CONFIG], split=split, verbose=False)
 
 
-def explain_cases(n_cases: int = 12, split: str = "val", with_occlusion: bool = False,
-                  device: str = None) -> dict:
+def explain_cases(n_cases: int = 12, split: str = "val", with_occlusion: bool = True,
+                  device: str = None, quality_steps: int = 16) -> dict:
+    """Run the XAI stack on a case sample; produce figures + per-method quality.
+
+    `with_occlusion` defaults to True: the three complementary method families
+    (CAM / gradient-path / perturbation) are computed for every case and get
+    their own faithfulness / robustness / model-randomization controls.
+    """
     from src.inference import load_models, get_device  # Phase-1 loader
     device = device or get_device()[0]
     sys.path.insert(0, str(DEMO_DIR))
@@ -155,6 +167,17 @@ def explain_cases(n_cases: int = 12, split: str = "val", with_occlusion: bool = 
         if with_occlusion:
             heatmaps["occlusion"] = occlusion_scan(models, tensor, device)
 
+        # input-dependence guard: a constant/non-finite map must NOT be presented
+        # as an explanation (logged + dropped from figure/artifacts)
+        degenerate_flags = {}
+        for name in list(heatmaps):
+            check = map_is_degenerate(heatmaps[name])
+            if check["degenerate"]:
+                degenerate_flags[name] = check["reasons"]
+                print(f"[xai][WARN] {case_id}: degenerate {name} map "
+                      f"({', '.join(check['reasons'])}) -> dropped", flush=True)
+                heatmaps.pop(name)
+
         # ground-truth mask -> to the model grid (agreement metrics per method)
         gt_native = load_case_gt_mask(case_id)
         y_true = _labels_lookup().get(case_id)
@@ -177,27 +200,49 @@ def explain_cases(n_cases: int = 12, split: str = "val", with_occlusion: bool = 
                 quality_rows.append({
                     "case_id": case_id, "reason": t["reason"], "method": name,
                     "likelihood": likelihood, "y_true": y_true, **agro,
+                    "degenerate": name in degenerate_flags,
                 })
-        # one insertion/deletion + randomization + stability on gradcam only
-        idres = insertion_deletion(models, preproc.copy(), heatmaps["gradcam"], device,
-                                   steps=16)
-        rand = randomization_test(models, preproc.copy(), device, "gradcam")
-        stab = stability_jitter(models, preproc.copy(), device, "gradcam")
-        quality_rows.append({
-            "case_id": case_id, "reason": t["reason"], "method": "gradcam_summary",
-            "likelihood": likelihood, "y_true": y_true,
-            "insertion_auc": idres["insertion_auc"], "deletion_auc": idres["deletion_auc"],
-            "randomization_pearson": rand["pearson_similarity_orig_vs_randomized"],
-            "stability_shift_y_pearson": stab["pearson_shift_y"],
-        })
+        # per-method faithfulness + robustness + model-randomization controls.
+        # Scores below use DIFFERENT protocols per family and are NEVER mixed
+        # in a single cross-method ranking (see reports/XAI_COMPARISON.md).
+        for name, h in heatmaps.items():
+            idres = insertion_deletion(models, preproc.copy(), h, device,
+                                       steps=quality_steps)
+            row = {
+                "case_id": case_id, "reason": t["reason"],
+                "method": f"{name}_summary",
+                "likelihood": likelihood, "y_true": y_true,
+                "insertion_auc": idres["insertion_auc"],
+                "deletion_auc": idres["deletion_auc"],
+            }
+            if name in ("gradcam", "gradcampp"):
+                rand = randomization_test(models, preproc.copy(), device, name)
+                stab = stability_jitter(models, preproc.copy(), device, name)
+            elif name == "integrated_gradients":
+                rand = randomization_test_ig(models, preproc.copy(), device, steps=8)
+                stab = stability_jitter(
+                    models, preproc.copy(), device, name,
+                    explainer=lambda ms, tt, dv: ensemble_integrated_gradients(
+                        ms, tt, dv, steps=8))
+            elif name == "occlusion":
+                rand = randomization_test_occlusion(models, preproc.copy(), device)
+                stab = stability_jitter(
+                    models, preproc.copy(), device, name,
+                    explainer=lambda ms, tt, dv: occlusion_scan(
+                        ms, tt, dv, slab=(2, 32, 32), stride=(4, 48, 48)))
+            else:
+                continue
+            row["randomization_pearson"] = rand["pearson_similarity_orig_vs_randomized"]
+            row["stability_shift_y_pearson"] = stab["pearson_shift_y"]
+            quality_rows.append(row)
         print(f"[xai] {case_id} done in {time.time() - t0:.0f}s -> {fig_path.name}",
               flush=True)
 
     rows = pd.DataFrame(quality_rows)
     rows.to_csv(out_root / "xai_quality.csv", index=False)
-    summary = rows.groupby("method")[
-        [c for c in rows.columns if c not in ("case_id", "reason", "method", "y_true")]
-    ].mean().reset_index()
+    num_cols = [c for c in rows.columns
+                if c not in ("case_id", "reason", "method", "y_true")]
+    summary = rows.groupby("method")[num_cols].mean(numeric_only=True).reset_index()
     summary.to_json(out_root / "xai_quality_summary.json", orient="records", indent=2)
     return {"n_cases": len(chosen), "quality_csv": str(out_root / "xai_quality.csv")}
 
@@ -228,9 +273,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n-cases", type=int, default=12)
     ap.add_argument("--split", type=str, default="val")
-    ap.add_argument("--with-occlusion", action="store_true")
+    ap.add_argument("--with-occlusion", action="store_true",
+                    help="compat flag: occlusion is now computed by default")
+    ap.add_argument("--no-occlusion", action="store_true",
+                    help="skip the occlusion scan (fast runs)")
+    ap.add_argument("--quality-steps", type=int, default=16,
+                    help="insertion/deletion steps for the faithfulness controls")
     args = ap.parse_args()
-    res = explain_cases(args.n_cases, args.split, with_occlusion=args.with_occlusion)
+    res = explain_cases(args.n_cases, args.split,
+                        with_occlusion=not args.no_occlusion,
+                        quality_steps=args.quality_steps)
     print(json.dumps(res, indent=2))
 
 

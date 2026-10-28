@@ -27,7 +27,9 @@ Implemented methods
    fold-averaged raw ensemble heatmap (sigma=0 proxy of the official fusion,
    chosen for speed; documented as a proxy).
 
-All functions operate on the PREPROCESSED tensor (1, 3, 20, 256, 256).
+All functions operate on a SINGLE preprocessed tensor (1, 3, 20, 256, 256)
+and explain the SAME relevant output: the csPCa channel (channel index 1).
+Invalid inputs are rejected upfront by `_validate_input` (ValueError).
 """
 
 from __future__ import annotations
@@ -38,6 +40,33 @@ import torch.nn.functional as F
 from scipy.ndimage import gaussian_filter
 
 _OCCLUSION_BATCH = 32
+
+EXPECTED_IN_CHANNELS = 3
+
+
+def _validate_input(input_tensor: torch.Tensor, single_case: bool = True) -> torch.Tensor:
+    """Validate the input contract shared by the XAI methods.
+
+    single_case=True (attribution functions) requires exactly B=1;
+    single_case=False (batch scorers such as fused_score_from_batch) allows
+    any batch size. Raises ValueError (never silently reshapes/moves) so
+    that shapes stay honest between preprocessing and the explanation.
+    """
+    if input_tensor.dim() != 5:
+        raise ValueError(
+            f"expected a 5-D tensor (B, C, d, h, w), got {tuple(input_tensor.shape)}"
+        )
+    if single_case and input_tensor.shape[0] != 1:
+        raise ValueError(
+            "XAI methods explain ONE case at a time (B=1); "
+            f"got batch of {input_tensor.shape[0]}"
+        )
+    if input_tensor.shape[1] != EXPECTED_IN_CHANNELS:
+        raise ValueError(
+            f"the PI-CAI model expects C={EXPECTED_IN_CHANNELS} channels (t2w, adc, hbv); "
+            f"got C={input_tensor.shape[1]}"
+        )
+    return input_tensor
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +116,7 @@ def cam_weights_gradcampp(grads: torch.Tensor, activations: torch.Tensor) -> tor
 def gradcam_3d(model: torch.nn.Module, input_tensor: torch.Tensor,
                method: str = "gradcam") -> np.ndarray:
     """CAM of ONE fold model: (20, 256, 256) in [0, 1]."""
+    _validate_input(input_tensor)
     hook_module = _top_block_last_skip(model)
     hook = _FeatureHook(hook_module)
     try:
@@ -118,6 +148,7 @@ def gradcam_3d(model: torch.nn.Module, input_tensor: torch.Tensor,
 
 def ensemble_gradcam(models, input_tensor: torch.Tensor, device: str,
                      method: str = "gradcam") -> np.ndarray:
+    _validate_input(input_tensor)
     cams = [gradcam_3d(m, input_tensor.to(next(m.parameters()).device), method) for m in models]
     cam = np.mean(cams, axis=0).astype(np.float32)
     cam -= cam.min()
@@ -129,24 +160,44 @@ def ensemble_gradcam(models, input_tensor: torch.Tensor, device: str,
 # Integrated Gradients
 # ---------------------------------------------------------------------------
 
-def ensemble_integrated_gradients(models, input_tensor: torch.Tensor, device: str,
-                                  steps: int = 32) -> np.ndarray:
-    """(20, 256, 256) attribution map in [0, 1], averaged over fold models."""
-    x0 = input_tensor.to(device, dtype=torch.float32)
-    x0.requires_grad_(True)
+def integrated_gradients_single(model: torch.nn.Module, input_tensor: torch.Tensor,
+                                device: str, steps: int = 32) -> np.ndarray:
+    """IG of ONE fold model: (3, d, h, w) RAW signed attribution, not normalized.
+
+    Signed output preserved here: negative attributions (voxels that, along
+    the path, push the csPCa score DOWN) keep their sign, which is meaningful
+    for gradient-path methods. Callers choose their own summarization.
+    """
+    _validate_input(input_tensor)
+    model = model.to(device)
+    x0 = input_tensor.to(device, dtype=torch.float32).clone().requires_grad_(True)
     base = torch.zeros_like(x0, device=device)
     alphas = torch.linspace(0.0, 1.0, steps + 1, device=device)[:-1]
-    total = torch.zeros_like(x0, device=device)
+    acc = torch.zeros_like(x0, device=device)
+    for a in alphas:
+        x = base + (x0 - base) * a
+        out = model(x)
+        score = out[:, 1].sum()
+        grads, = torch.autograd.grad(score, x)
+        acc += grads.detach()
+    return ((x0 - base) * acc / steps).detach().cpu().numpy()[0]
+
+
+def ensemble_integrated_gradients(models, input_tensor: torch.Tensor, device: str,
+                                  steps: int = 32) -> np.ndarray:
+    """(20, 256, 256) attribution map in [0, 1], averaged over fold models.
+
+    Fold-average the RAW signed IG per channel, then summarize over input
+    channels by max of |IG| along the channel axis (positives and negatives
+    are collapsed to an intensity; the sign of the mean is NOT displayed —
+    documented limitation). Min-max normalized to [0, 1].
+    """
+    _validate_input(input_tensor)
+    total = torch.zeros(input_tensor.shape, dtype=torch.float32, device=device)
     for m in models:
         m = m.to(device)
-        acc = torch.zeros_like(x0, device=device)
-        for a in alphas:
-            x = base + (x0 - base) * a
-            out = m(x)
-            score = out[:, 1].sum()
-            grads, = torch.autograd.grad(score, x)
-            acc += grads.detach()
-        total += (x0 - base) * acc / steps
+        ig_raw = integrated_gradients_single(m, input_tensor, device, steps=steps)
+        total += torch.from_numpy(ig_raw).to(device)
     ig = total.detach().cpu().numpy()[0]          # (3, d, h, w)
     ig = np.abs(ig).max(axis=0)                   # summarize over channels
     ig = ig.astype(np.float32)
@@ -162,6 +213,7 @@ def ensemble_integrated_gradients(models, input_tensor: torch.Tensor, device: st
 def fused_score_from_batch(models, xb: torch.Tensor, device: str) -> np.ndarray:
     """max over the model grid of the fold-averaged sigmoid maps (no sigma, no
     TTA: occlusion-speed proxy documented in the module docstring)."""
+    _validate_input(xb, single_case=False)
     acc = None
     for m in models:
         p = torch.sigmoid(m(xb.to(device, dtype=torch.float32)))[:, 1, ...].detach().cpu().numpy()
@@ -171,8 +223,22 @@ def fused_score_from_batch(models, xb: torch.Tensor, device: str) -> np.ndarray:
 
 
 def occlusion_scan(models, input_tensor: torch.Tensor, device: str,
-                   slab=(2, 32, 32), stride=(2, 24, 24)) -> np.ndarray:
-    """Per-slab score drop: (z, y, x) array in [0, 1] (great = model lost score)."""
+                   slab=(2, 32, 32), stride=(2, 24, 24),
+                   normalize: bool = True) -> np.ndarray:
+    """Per-slab score drop: (z, y, x) array in [0, 1] (great = model lost score).
+
+    Occluder = rectangular slab filled with 0.0 (the per-voxel mean of the
+    z-scored channels). Overlapping slabs: the LAST placed drop wins (write
+    order = scan order, documented). The score whose drop is measured is the
+    fold-averaged fused max-sigmoid proxy (see fused_score_from_batch).
+
+    normalize=True (default, historical behavior): min-max scaled to [0, 1] —
+    magnitude information is discarded. normalize=False returns the RAW drop
+    magnitudes (score units, clipped at 0) for the scientific controls (input
+    independence, flat-input/"nothing found" checks); raw drops below 1e-9
+    scale are not artificially rescaled.
+    """
+    _validate_input(input_tensor)
     x0 = input_tensor.to(device, dtype=torch.float32)
     d, h, w = x0.shape[-3:]
     base = fused_score_from_batch(models, x0, device)[0]
@@ -193,6 +259,6 @@ def occlusion_scan(models, input_tensor: torch.Tensor, device: str,
         for (zi, yi, xi), dp in zip(chunk, drop):
             out[zi: zi + slab[0], yi: yi + slab[1], xi: xi + slab[2]] = dp
     mx = out.max()
-    if mx > 0:
+    if normalize and mx > 0:
         out /= mx
     return out
